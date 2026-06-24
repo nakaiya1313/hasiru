@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>ドットダッシュ</title>
+<style>
+  :root{
+    --glow:#ffe66d; --accent:#ff8c42; --enemy:#34d399; --danger:#ff4d6d; --ink:#2a1635;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;overflow:hidden;background:#0d0820;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Yu Gothic",sans-serif;
+    color:#fff;touch-action:none;user-select:none;-webkit-user-select:none;
+    position:fixed;inset:0;
+  }
+  canvas{
+    position:absolute;inset:0;width:100%;height:100%;
+    image-rendering:pixelated;image-rendering:crisp-edges;
+  }
+  /* HUD */
+  #hud{
+    position:absolute;top:0;left:0;right:0;padding:10px 16px;
+    display:flex;justify-content:space-between;align-items:flex-start;
+    pointer-events:none;z-index:5;
+  }
+  .meter{font-variant-numeric:tabular-nums;line-height:1;text-shadow:0 2px 0 rgba(0,0,0,.45);}
+  .meter .big{font-size:clamp(24px,6vw,40px);font-weight:800;letter-spacing:-1px;color:#fff;}
+  .meter .unit{font-size:.5em;font-weight:700;color:var(--glow);margin-left:2px;}
+  .meter .lbl{font-size:10px;font-weight:700;letter-spacing:2px;color:rgba(255,255,255,.55);}
+  #best{text-align:right;}
+  #best .v{font-size:clamp(14px,3.5vw,18px);font-weight:800;color:var(--glow);}
+
+  /* ゲーム中の小バナー広告(上部中央) */
+  #adGameplay{
+    position:absolute;top:6px;left:50%;transform:translateX(-50%);
+    z-index:6;display:none;pointer-events:auto;
+    border-radius:6px;overflow:hidden;opacity:.92;
+  }
+  #adGameplay.show{display:block;}
+
+  /* Overlays */
+  .overlay{
+    position:absolute;inset:0;z-index:10;overflow-y:auto;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    text-align:center;padding:18px;gap:14px;
+    background:radial-gradient(120% 90% at 50% 16%,rgba(106,46,110,.4),rgba(13,8,32,.85));
+  }
+  .overlay.hidden{display:none;}
+  .title{
+    font-size:clamp(34px,11vw,68px);font-weight:900;letter-spacing:-2px;line-height:.9;color:var(--glow);
+    text-shadow:0 0 18px rgba(255,230,109,.55),0 4px 0 #c2284a,0 6px 0 rgba(0,0,0,.4);
+  }
+  .title small{display:block;font-size:.26em;letter-spacing:8px;color:var(--accent);
+    text-shadow:none;margin-top:8px;font-weight:800;}
+
+  .rotate{
+    display:flex;align-items:center;gap:10px;font-size:13px;font-weight:800;
+    color:#0d0820;background:var(--glow);border-radius:30px;padding:8px 16px;
+    box-shadow:0 4px 0 #c79b1a;
+  }
+  .rotate .ph{font-size:20px;animation:rot 2.4s ease-in-out infinite;transform-origin:center;}
+  @keyframes rot{0%,40%{transform:rotate(0)}55%,85%{transform:rotate(90deg)}100%{transform:rotate(90deg)}}
+  body.portrait .rotate{font-size:14px;outline:3px solid #fff;animation:pulse 1.2s ease-in-out infinite;}
+  @keyframes pulse{50%{transform:scale(1.05);}}
+  .howline{font-size:11px;color:rgba(255,255,255,.6);font-weight:600;line-height:1.5;max-width:330px;}
+  .howline b{color:var(--glow);}
+
+  .howto{
+    display:flex;flex-direction:column;gap:7px;font-size:clamp(12px,3.2vw,15px);
+    font-weight:600;color:rgba(255,255,255,.92);
+    background:rgba(13,8,32,.45);border:1px solid rgba(255,255,255,.12);
+    border-radius:14px;padding:13px 20px;max-width:330px;
+  }
+  .howto .row{display:flex;align-items:center;gap:10px;}
+  .chip{width:20px;height:20px;border-radius:5px;flex:0 0 auto;box-shadow:inset 0 -3px 0 rgba(0,0,0,.25);}
+  .chip.e{background:var(--enemy);}
+  .chip.d{background:var(--danger);}
+  .chip.j{background:var(--glow);}
+
+  .modes{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;}
+  .mode{
+    cursor:pointer;border:0;font-family:inherit;color:#fff;
+    padding:14px 20px;border-radius:16px;min-width:130px;
+    display:flex;flex-direction:column;gap:3px;align-items:center;
+    box-shadow:0 5px 0 rgba(0,0,0,.35),0 8px 14px rgba(0,0,0,.35);
+    transition:transform .08s;
+  }
+  .mode:active{transform:translateY(3px);box-shadow:0 2px 0 rgba(0,0,0,.35);}
+  .mode.steady{background:linear-gradient(180deg,#34d399,#1c9b73);box-shadow:0 5px 0 #137a59,0 8px 14px rgba(0,0,0,.35);}
+  .mode.accel{background:linear-gradient(180deg,var(--accent),#e0552a);box-shadow:0 5px 0 #a13315,0 8px 14px rgba(0,0,0,.35);}
+  .mode .t{font-size:17px;font-weight:900;letter-spacing:.5px;}
+  .mode .s{font-size:11px;font-weight:600;opacity:.92;}
+
+  .bigover{font-size:clamp(30px,9vw,52px);font-weight:900;letter-spacing:-1px;color:#fff;text-shadow:0 4px 0 rgba(0,0,0,.4);}
+  .modeTag{font-size:12px;font-weight:800;letter-spacing:2px;color:var(--accent);}
+  .scorebox{display:flex;gap:30px;align-items:flex-end;justify-content:center;}
+  .scorebox .col .n{font-size:clamp(28px,8vw,48px);font-weight:900;font-variant-numeric:tabular-nums;line-height:1;color:var(--glow);}
+  .scorebox .col .k{font-size:10px;font-weight:700;letter-spacing:2px;color:rgba(255,255,255,.55);margin-top:5px;}
+  .newbest{font-size:13px;font-weight:800;letter-spacing:3px;color:var(--accent);animation:blink 1s steps(2,start) infinite;}
+  @keyframes blink{50%{opacity:.25;}}
+  .tap{
+    margin-top:2px;font-size:clamp(14px,3.6vw,18px);font-weight:800;letter-spacing:1px;color:#fff;
+    padding:12px 28px;border-radius:40px;
+    background:linear-gradient(180deg,var(--accent),#e0552a);
+    box-shadow:0 5px 0 #a13315,0 8px 14px rgba(0,0,0,.4);
+    animation:bob 1.4s ease-in-out infinite;cursor:pointer;
+  }
+  @keyframes bob{50%{transform:translateY(-5px);}}
+  .ad{display:flex;justify-content:center;align-items:center;min-height:0;}
+  @media (prefers-reduced-motion:reduce){
+    .tap,.newbest,.rotate .ph,body.portrait .rotate{animation:none;}
+  }
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+
+<div id="hud">
+  <div class="meter">
+    <div class="lbl">DISTANCE</div>
+    <div><span class="big" id="dist">0</span><span class="unit">m</span></div>
+  </div>
+  <div id="best" class="meter">
+    <div class="lbl">BEST</div>
+    <div class="v"><span id="bestVal">0</span>m</div>
+  </div>
+</div>
+
+<!-- ゲーム中の小さい広告 -->
+<div id="adGameplay"></div>
+
+<!-- スタート画面(トップページ) -->
+<div class="overlay" id="startScreen">
+  <div class="title">ドット<br>ダッシュ<small>DOT DASH</small></div>
+
+  <div class="rotate"><span class="ph">📱</span><span>横画面でどうぞ！</span></div>
+  <div class="howline">
+    スマホを<b>横向き</b>に。出ないときは画面の<b>自動回転をオン</b>に<br>
+    （iPhone：コントロールセンターで向きロックを解除／Android：クイック設定で自動回転オン）
+  </div>
+
+  <div class="howto">
+    <div class="row"><span class="chip j"></span><span>タップで <b>ジャンプ</b></span></div>
+    <div class="row"><span class="chip e"></span><span>緑のヤツは <b>踏んでOK</b>（大きいのは頂点で踏む）</span></div>
+    <div class="row"><span class="chip d"></span><span>赤いのは <b>避ける</b>（空中のヤツに注意）</span></div>
+  </div>
+
+  <div style="font-size:12px;font-weight:700;letter-spacing:2px;color:rgba(255,255,255,.6);">モードを選んでスタート</div>
+  <div class="modes">
+    <button class="mode steady" id="btnSteady">
+      <span class="t">ゆっくり</span><span class="s">一定速度・のんびり長く</span>
+    </button>
+    <button class="mode accel" id="btnAccel">
+      <span class="t">だんだん加速</span><span class="s">少しずつ速くなる</span>
+    </button>
+  </div>
+
+  <div class="ad" id="adStart"></div>
+</div>
+
+<!-- ゲームオーバー画面 -->
+<div class="overlay hidden" id="overScreen">
+  <div class="bigover">GAME OVER</div>
+  <div class="modeTag" id="overMode"></div>
+  <div class="scorebox">
+    <div class="col"><div class="n" id="finalDist">0</div><div class="k">DISTANCE m</div></div>
+    <div class="col"><div class="n" id="finalBest">0</div><div class="k">BEST m</div></div>
+  </div>
+  <div class="newbest" id="newBest" style="display:none;">★ NEW RECORD ★</div>
+  <div class="tap" id="retryBtn">タップでリトライ</div>
+  <div class="ad" id="adOver"></div>
+</div>
+
+<script>
+"use strict";
+(function(){
+  /* ====== Canvas / 論理解像度 ====== */
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  const LH = 180;
+  let LW = 320;
+
+  function resize(){
+    const cssW = window.innerWidth, cssH = window.innerHeight;
+    LW = Math.max(200, Math.round(LH * (cssW / cssH)));
+    canvas.width = LW; canvas.height = LH;
+    player.x = Math.round(LW * 0.24);
+    document.body.classList.toggle('portrait', cssH > cssW);
+  }
+  window.addEventListener('resize', resize);
+  window.addEventListener('orientationchange', ()=>setTimeout(resize,200));
+
+  /* ====== 物理 ====== */
+  const GROUND = 152;
+  const GRAV = 0.62;
+  const JUMP_V = -8.6;
+  const PPM = 7;
+
+  const player = {
+    x:70, y:0, vy:0, w:14, h:15,
+    onGround:true, coyote:0, runFrame:0, runTimer:0, alive:true
+  };
+
+  /* ====== パレット ====== */
+  const PAL = {
+    'Y':'#ffe66d','y':'#f0b53a','K':'#3a2540','W':'#ffffff','O':'#ff8c42',
+    'C':'#34d399','c':'#159b78','R':'#ff4d6d','r':'#c2284a','M':'#a64dff','m':'#6a2caa'
+  };
+
+  /* ====== スプライト ====== */
+  const HERO_A = [
+    "................",".......KKKK.....",".....KKYYYYKK...","....KYYYYYYYYK..",
+    "...KYYYYYYYYYYK.","...KYYYYYWWKYK..","OOKYYYYYYWWKYK..","OOKYYYYYYYYKYK..",
+    ".OKYYYYYYYYYYK..","..KYYYYYYYYYYK..","..KyYYYYYYYYyK..","...KyYYYYYYyK...",
+    "....KKyyyyKK....",".....K..K.K.....","....KK...KK.....","................"
+  ];
+  const HERO_B = [
+    "................",".......KKKK.....",".....KKYYYYKK...","....KYYYYYYYYK..",
+    "...KYYYYYYYYYYK.","...KYYYYYWWKYK..","OOKYYYYYYWWKYK..","OOKYYYYYYYYKYK..",
+    ".OKYYYYYYYYYYK..","..KYYYYYYYYYYK..","..KyYYYYYYYYyK..","...KyYYYYYYyK...",
+    "....KKyyyyKK....","......KKKK......",".....KK..KK.....","................"
+  ];
+  const HERO_JUMP = [
+    "................",".......KKKK.....",".....KKYYYYKK...","....KYYYYYYYYK..",
+    "..OKYYYYYYYYYYK.","OOKYYYYYWWKYK...","OOKYYYYYYWWKYK..",".OKYYYYYYYYKYK..",
+    "..KYYYYYYYYYYK..","..KYYYYYYYYYYK..","..KyYYYYYYYYyK..","...KyYYYYYYyK...",
+    "...KKyyyyyyKK...","..KK......KK....","................","................"
+  ];
+  // 小スライム(踏める) 12x9
+  const SLIME = [
+    "....CCCC....","..CCCCCCCC..",".CCCCCCCCCC.",".CCKWCCKWCC.",
+    ".CCKKCCKKCC.","CCCCCCCCCCCC","CcCCCCCCCCcC","CccccccccccC",".cccccccccc."
+  ];
+  // 大スライム(踏める・ギリ踏めそう) 18x16
+  const BIGSLIME = [
+    "......CCCCCC......","....CCCCCCCCCC....","...CCCCCCCCCCCC...","..CCCCCCCCCCCCCC..",
+    ".CCCCCCCCCCCCCCCC.",".CCCCCCCCCCCCCCCC.",".CCCKWCCCCCCKWCCC.",".CCCKKCCCCCCKKCCC.",
+    "CCCCCCCCCCCCCCCCCC","CCCCCCCCCCCCCCCCCC","CCCCCCCCCCCCCCCCCC","CcCCCCCCCCCCCCCCcC",
+    "CcCCCCCCCCCCCCCCcC","CccCCCCCCCCCCCCccC","CccccccccccccccccC",".cccccccccccccccc."
+  ];
+  // 小トゲ(避ける) 8x14
+  const SPIKE = [
+    "...WW...","...RR...","..RRRR..","..RRRR..",".RRRRRR.",".RRrrRR.",".RRrrRR.",
+    "RRRrrRRR","RRRrrRRR","RRrrrrRR","RRrrrrRR","RrrrrrrR","RrrrrrrR","rrrrrrrr"
+  ];
+  // 大障害物・結晶岩(避ける) 16x20
+  const ROCK = [
+    "...RR......RR...","...RR......RR...","..MRRM....MRRM..","..MRRM....MRRM..",
+    "..MRRM...MMRRM..",".MMRRMM..MMRRMM.",".MMRRMM..MMRRMM.",".MMRRMM.MMMRRMM.",
+    ".MMRRMMMMMMRRMM.","MMMRRMMMMMMMRRMM","MMMMMMMMMMMMMMMM","MMMmMMMMMMMmMMMM",
+    "MMmmMMMMMMmmMMMM","MmmmmMMMMmmmmMMM","MmmmmmMMmmmmmMMM","mmmmmmmmmmmmmmMM",
+    "mmmmmmmmmmmmmmmM","mmmmmmmmmmmmmmmm","mmmmmmmmmmmmmmmm","mmmmmmmmmmmmmmmm"
+  ];
+  // 浮遊する危険物(避ける・空中) 12x10
+  const FLOATER = [
+    "..RR....RR..",".RRRR..RRRR.","RRRRRRRRRRRR","RRRWWRRWWRRR",
+    "RRWKWRRWKWRR","RRRWWRRWWRRR","RRRRRRRRRRRR",".RRRRRRRRRR.","..RRRRRRRR..","...RrrrR...."
+  ];
+
+  function drawSprite(map, ox, oy, flip){
+    for(let r=0;r<map.length;r++){
+      const row = map[r];
+      for(let c=0;c<row.length;c++){
+        const ch = row[c];
+        if(ch===' '||ch==='.') continue;
+        const col = PAL[ch]; if(!col) continue;
+        const px = flip ? ox + (row.length-1-c) : ox + c;
+        ctx.fillStyle = col; ctx.fillRect(px, oy + r, 1, 1);
+      }
+    }
+  }
+
+  /* ====== 障害物タイプ定義 ====== */
+  const TYPES = {
+    spike:   {w:8,  h:14, stomp:false, sprite:SPIKE,    yo:14, big:false},
+    rock:    {w:16, h:20, stomp:false, sprite:ROCK,     yo:20, big:true},
+    slime:   {w:12, h:9,  stomp:true,  sprite:SLIME,    yo:9,  big:false},
+    bigslime:{w:18, h:16, stomp:true,  sprite:BIGSLIME, yo:16, big:true},
+    floater: {w:12, h:10, stomp:false, sprite:FLOATER,  yo:42, big:false, air:true}
+  };
+
+  /* ====== 状態 ====== */
+  let obstacles = [], particles = [];
+  let speed = 2.0, distance = 0, spawnGap = 70;
+  let state = 'menu';        // menu / play / over
+  let bgScroll = 0, groundScroll = 0;
+  let best = 0, overCooldown = 0;
+  let accelMode = false;     // true:だんだん加速 / false:一定速度
+  let lastKind = '';
+  const STEADY_SPEED = 2.0;
+
+  try { best = parseInt(localStorage.getItem('dotdash_best')||'0',10)||0; } catch(e){}
+
+  function reset(){
+    obstacles = []; particles = [];
+    distance = 0; spawnGap = 80; lastKind = '';
+    speed = accelMode ? 2.0 : STEADY_SPEED;
+    player.y = GROUND - player.h; player.vy = 0;
+    player.onGround = true; player.coyote = 0; player.alive = true;
+    bgScroll = 0; groundScroll = 0;
+  }
+
+  /* ====== スポーン(重み付き・距離で大物解禁) ====== */
+  function pickKind(){
+    const d = distance;
+    const table = [];
+    table.push(['slime', d<150?42:28]);
+    table.push(['spike', d<150?58:34]);
+    if(d>=130){ table.push(['bigslime',16]); table.push(['rock',16]); }
+    if(d>=260){ table.push(['floater',12]); }
+    // floaterの直後はfloaterを出さない
+    let total=0; for(const t of table){ if(t[0]==='floater'&&lastKind==='floater') t[1]=0; total+=t[1]; }
+    let roll=Math.random()*total;
+    for(const t of table){ roll-=t[1]; if(roll<=0) return t[0]; }
+    return 'spike';
+  }
+  function spawn(){
+    const kind = pickKind();
+    const def = TYPES[kind];
+    if(kind==='spike'){
+      const n = 1 + Math.floor(Math.random()*3);   // トゲ束1〜3
+      for(let i=0;i<n;i++) obstacles.push({kind, x:LW+8+i*8, y:GROUND-def.yo, w:def.w, h:def.h, dead:false, anim:0});
+    } else {
+      obstacles.push({kind, x:LW+8, y:GROUND-def.yo, w:def.w, h:def.h, dead:false, anim:0});
+    }
+    // 次ギャップ: ジャンプ滞空中の移動量を確保
+    const air = 2*Math.abs(JUMP_V)/GRAV;
+    let minGap = speed*air*0.6 + 32;
+    if(def.big) minGap += 18;                       // 大物は余白多め
+    if(kind==='floater' || lastKind==='floater') minGap += 26; // 空中物は前後広め
+    spawnGap = minGap + Math.random()*(55 + speed*7);
+    lastKind = kind;
+  }
+
+  /* ====== 入力 ====== */
+  function doJump(){
+    if(player.onGround || player.coyote > 0){
+      player.vy = JUMP_V; player.onGround = false; player.coyote = 0;
+    }
+  }
+  function tap(){
+    if(state==='play'){ doJump(); }
+    else if(state==='over'){ if(overCooldown<=0) startGame(accelMode); }
+    // menu中はモードボタンで開始
+  }
+  window.addEventListener('pointerdown', function(e){
+    if(state==='menu') return;            // メニューはボタンに任せる
+    e.preventDefault(); tap();
+  }, {passive:false});
+  window.addEventListener('keydown', function(e){
+    if(e.code==='Space'||e.code==='ArrowUp'||e.code==='KeyW'){
+      e.preventDefault();
+      if(state==='menu') startGame(false); else tap();
+    }
+  });
+  document.getElementById('btnSteady').addEventListener('click', ()=>startGame(false));
+  document.getElementById('btnAccel').addEventListener('click', ()=>startGame(true));
+  document.getElementById('retryBtn').addEventListener('click', (e)=>{
+    e.stopPropagation(); if(overCooldown<=0) startGame(accelMode);
+  });
+
+  /* ====== 制御 ====== */
+  const startScreen = document.getElementById('startScreen');
+  const overScreen = document.getElementById('overScreen');
+  const adGameplay = document.getElementById('adGameplay');
+
+  function startGame(useAccel){
+    accelMode = useAccel; reset(); state = 'play';
+    startScreen.classList.add('hidden');
+    overScreen.classList.add('hidden');
+    adGameplay.classList.add('show');
+  }
+  function gameOver(){
+    state = 'over'; overCooldown = 30; player.alive = false;
+    adGameplay.classList.remove('show');
+    const d = Math.floor(distance);
+    let isNew = false;
+    if(d > best){ best = d; isNew = true; try{localStorage.setItem('dotdash_best',String(best));}catch(e){} }
+    document.getElementById('finalDist').textContent = d;
+    document.getElementById('finalBest').textContent = best;
+    document.getElementById('bestVal').textContent = best;
+    document.getElementById('overMode').textContent = accelMode ? 'だんだん加速モード' : 'ゆっくりモード';
+    document.getElementById('newBest').style.display = isNew ? 'block':'none';
+    overScreen.classList.remove('hidden');
+    injectAd('adOver', 300, 250);
+    for(let i=0;i<16;i++){
+      particles.push({x:player.x+7,y:player.y+7,vx:(Math.random()-0.5)*4,vy:(Math.random()-0.7)*5,
+        life:30,col:Math.random()<0.5?'#ffe66d':'#ff8c42'});
+    }
+  }
+
+  function hit(a, ox,oy,ow,oh){ return a.x < ox+ow && a.x+a.w > ox && a.y < oy+oh && a.y+a.h > oy; }
+
+  /* ====== 更新 ====== */
+  function update(dt){
+    if(overCooldown>0) overCooldown -= dt;
+    if(state !== 'play'){
+      bgScroll += 0.3*dt; groundScroll += 0.3*dt; stepParticles(dt); return;
+    }
+    if(accelMode) speed = Math.min(4.0, 2.0 + distance*0.0016);
+    else speed = STEADY_SPEED;
+
+    const mv = speed*dt;
+    bgScroll += mv; groundScroll += mv; distance += mv/PPM;
+
+    player.vy += GRAV*dt; player.y += player.vy*dt;
+    if(player.onGround) player.coyote = 6;
+    else if(player.coyote>0) player.coyote -= dt;
+    if(player.y + player.h >= GROUND){
+      player.y = GROUND - player.h; player.onGround = true; player.vy = 0;
+    } else player.onGround = false;
+
+    player.runTimer += dt;
+    if(player.runTimer > 5){ player.runTimer = 0; player.runFrame ^= 1; }
+
+    spawnGap -= mv;
+    if(spawnGap <= 0) spawn();
+
+    const pb = {x:player.x+2, y:player.y+1, w:player.w-4, h:player.h-2};
+    for(const o of obstacles){
+      o.x -= mv; o.anim += dt;
+      const def = TYPES[o.kind];
+      if(o.dead){ o.deadT += dt; continue; }
+      // 当たり判定(やや小さめ)
+      if(!hit(pb, o.x+1, o.y+1, o.w-2, o.h-1)) continue;
+      if(def.stomp){
+        const footOnTop = player.vy > 0 && (pb.y + pb.h) <= (o.y + o.h*0.6);
+        if(footOnTop){
+          o.dead = true; o.deadT = 0;
+          player.vy = JUMP_V*0.66; player.onGround = false;
+          distance += def.big ? 4 : 2;
+          const cx=o.x+o.w/2;
+          for(let i=0;i<(def.big?12:8);i++)
+            particles.push({x:cx,y:o.y+3,vx:(Math.random()-0.5)*3,vy:-Math.random()*3,life:22,col:'#34d399'});
+        } else return gameOver();
+      } else return gameOver();
+    }
+    obstacles = obstacles.filter(o => o.x + o.w > -14 && !(o.dead && o.deadT>14));
+    stepParticles(dt);
+  }
+  function stepParticles(dt){
+    for(const p of particles){ p.x+=p.vx*dt; p.y+=p.vy*dt; p.vy+=0.35*dt; p.life-=dt; }
+    particles = particles.filter(p => p.life > 0);
+  }
+
+  /* ====== 描画 ====== */
+  function drawBG(){
+    const g = ctx.createLinearGradient(0,0,0,LH);
+    g.addColorStop(0,'#1a1140'); g.addColorStop(0.42,'#5a2470');
+    g.addColorStop(0.72,'#c0407a'); g.addColorStop(0.90,'#ff7e5f'); g.addColorStop(1,'#ffb86c');
+    ctx.fillStyle = g; ctx.fillRect(0,0,LW,LH);
+    ctx.fillStyle = 'rgba(255,255,255,.7)';
+    for(let i=0;i<26;i++){ ctx.fillRect((i*53+17)%LW, (i*31)%70, 1, 1); }
+    const sunX = LW*0.7, sunY = 96;
+    ctx.fillStyle = '#ffd45e'; ctx.beginPath(); ctx.arc(sunX,sunY,26,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle = 'rgba(255,224,109,.18)'; ctx.beginPath(); ctx.arc(sunX,sunY,38,0,Math.PI*2); ctx.fill();
+    drawHills(bgScroll*0.18, 118, '#3a1c54', 46, 70);
+    drawHills(bgScroll*0.42, 132, '#5a2470', 30, 48);
+  }
+  function drawHills(scroll, baseY, col, amp, period){
+    ctx.fillStyle = col; ctx.beginPath(); ctx.moveTo(0, LH);
+    const off = scroll % period;
+    for(let x=-period; x<=LW+period; x+=2){
+      const t=(x+off)/period;
+      const y=baseY - Math.abs(Math.sin(t*1.3))*amp*(0.6+0.4*Math.sin(t*0.7));
+      ctx.lineTo(x,y);
+    }
+    ctx.lineTo(LW,LH); ctx.closePath(); ctx.fill();
+  }
+  function drawGround(){
+    const top = GROUND;
+    ctx.fillStyle = '#2a1530'; ctx.fillRect(0, top, LW, LH-top);
+    ctx.fillStyle = '#7a3d6e'; ctx.fillRect(0, top, LW, 2);
+    ctx.fillStyle = '#ff8c42'; ctx.fillRect(0, top, LW, 1);
+    ctx.fillStyle = 'rgba(255,255,255,.10)';
+    const off = Math.floor(groundScroll)%8;
+    for(let x=-off; x<LW; x+=8){ ctx.fillRect(x,top+6,2,1); ctx.fillRect(x+4,top+12,1,1); ctx.fillRect(x+2,top+18,2,1); }
+  }
+  function drawPlayer(){
+    if(!player.alive) return;
+    let map = !player.onGround ? HERO_JUMP : (player.runFrame ? HERO_B : HERO_A);
+    drawSprite(map, Math.round(player.x)-1, Math.round(player.y)-1, false);
+  }
+  function drawObstacles(){
+    for(const o of obstacles){
+      const def = TYPES[o.kind];
+      if(def.stomp && o.dead){
+        ctx.fillStyle = '#159b78';
+        const sh = Math.max(1, (def.big?7:5) - o.deadT*0.3);
+        ctx.fillRect(Math.round(o.x), GROUND-sh, o.w, sh);
+        continue;
+      }
+      let bob = 0;
+      if(def.stomp) bob = Math.sin(o.anim*0.25)*1;
+      else if(def.air) bob = Math.sin(o.anim*0.18)*3;   // 浮遊ゆれ
+      drawSprite(def.sprite, Math.round(o.x), Math.round(o.y+bob), false);
+    }
+  }
+  function drawParticles(){
+    for(const p of particles){
+      ctx.globalAlpha = Math.max(0, Math.min(1, p.life/14));
+      ctx.fillStyle = p.col; ctx.fillRect(Math.round(p.x), Math.round(p.y), 2, 2);
+    }
+    ctx.globalAlpha = 1;
+  }
+  function render(){
+    ctx.clearRect(0,0,LW,LH);
+    drawBG(); drawGround(); drawObstacles(); drawPlayer(); drawParticles();
+    if(state==='play') document.getElementById('dist').textContent = Math.floor(distance);
+  }
+
+  /* ====== ループ ====== */
+  let last = performance.now();
+  function loop(now){
+    let dt = (now-last)/16.667; last = now;
+    if(dt > 2.5) dt = 2.5;
+    if(!document.hidden){ update(dt); render(); }
+    requestAnimationFrame(loop);
+  }
+
+  /* ====== 忍者AdMax ハコ ======
+     ↓ srcdoc 内の <!--AD--> 部分に忍者AdMaxの広告タグを貼り付けてください。
+     ・トップpage(adStart) と ゲームオーバー(adOver) … 300x250 の大きめ枠
+     ・ゲーム中(adGameplay) … 320x50 の小さいバナー枠
+     iframeで隔離してあるので本体スクリプトと衝突しません。            */
+  function injectAd(containerId, w, h){
+    const c = document.getElementById(containerId);
+    if(!c || c.dataset.loaded) return;
+    c.dataset.loaded = '1';
+    const ad = document.createElement('iframe');
+    ad.width = w; ad.height = h; ad.scrolling = 'no';
+    ad.style.cssText = 'border:0;overflow:hidden;background:transparent;display:block;';
+    ad.srcdoc =
+      '<!DOCTYPE html><html><head><meta charset="utf-8">'+
+      '<style>body{margin:0;display:flex;justify-content:center;align-items:center;}</style></head>'+
+      '<body><!-- ここに忍者AdMaxの広告コードを貼り付け --><!--AD--></body></html>';
+    c.appendChild(ad);
+  }
+
+  /* ====== 起動 ====== */
+  document.getElementById('bestVal').textContent = best;
+  resize();
+  player.y = GROUND - player.h;
+  injectAd('adStart', 300, 250);    // トップの大きい広告
+  injectAd('adGameplay', 320, 50);  // ゲーム中の小さい広告
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
