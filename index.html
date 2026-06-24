@@ -166,6 +166,10 @@
   const HERO_JUMP=["................",".......KKKK.....",".....KKYYYYKK...","....KYYYYYYYYK..","..OKYYYYYYYYYYK.","OOKYYYYYWWKYK...","OOKYYYYYYWWKYK..",".OKYYYYYYYYKYK..","..KYYYYYYYYYYK..","..KYYYYYYYYYYK..","..KyYYYYYYYYyK..","...KyYYYYYYyK...","...KKyyyyyyKK...","..KK......KK....","................","................"];
   const SLIME=["....CCCC....","..CCCCCCCC..",".CCCCCCCCCC.",".CCKWCCKWCC.",".CCKKCCKKCC.","CCCCCCCCCCCC","CcCCCCCCCCcC","CccccccccccC",".cccccccccc."];
   const BIGSLIME=["......CCCCCC......","....CCCCCCCCCC....","...CCCCCCCCCCCC...","..CCCCCCCCCCCCCC..",".CCCCCCCCCCCCCCCC.",".CCCCCCCCCCCCCCCC.",".CCCKWCCCCCCKWCCC.",".CCCKKCCCCCCKKCCC.","CCCCCCCCCCCCCCCCCC","CCCCCCCCCCCCCCCCCC","CCCCCCCCCCCCCCCCCC","CcCCCCCCCCCCCCCCcC","CcCCCCCCCCCCCCCCcC","CccCCCCCCCCCCCCccC","CccccccccccccccccC",".cccccccccccccccc."];
+  // 少し大きいスライム(踏める) 18x22
+  const TALLSLIME=["......CCCCCC......","....CCCCCCCCCC....","...CCCCCCCCCCCC...","..CCCCCCCCCCCCCC..",".CCCCCCCCCCCCCCCC.",".CCCKWCCCCCCKWCCC.",".CCCKKCCCCCCKKCCC.",".CCCCCCCCCCCCCCCC.","CCCCCCCCCCCCCCCCCC","CCCCCCCCCCCCCCCCCC","CCCCCCCCCCCCCCCCCC","CCCCCCCCCCCCCCCCCC","CCCCCCCCCCCCCCCCCC","CcCCCCCCCCCCCCCCcC","CcCCCCCCCCCCCCCCcC","CcCCCCCCCCCCCCCCcC","CccCCCCCCCCCCCCccC","CccCCCCCCCCCCCCccC","CcccCCCCCCCCCCcccC","CccccccccccccccccC",".cccccccccccccccc.","..cccccccccccccc.."];
+  // 背の高い敵・ジャンプ頂点で踏む(踏める) 16x40
+  const TOWER=["......CCCC......","....CCCCCCCC....","..CCCCCCCCCCCC..",".CCCCCCCCCCCCCC.",".CCCKWCCCCKWCCC.",".CCCKKCCCCKKCCC.",".CCCCCCCCCCCCCC.","CCCCCCCCCCCCCCCC","CCCCCCCCCCCCCCCC","CcCCCCCCCCCCCCcC","CcCCCCCCCCCCCCcC","CCCCCCCCCCCCCCCC","CCCCCCCCCCCCCCCC","CcCCCCCCCCCCCCcC","CcCCCCCCCCCCCCcC","CCCCCCCCCCCCCCCC","CCCCCCCCCCCCCCCC","CcCCCCCCCCCCCCcC","CcCCCCCCCCCCCCcC","CCCCCCCCCCCCCCCC","CCCCCCCCCCCCCCCC","CcCCCCCCCCCCCCcC","CcCCCCCCCCCCCCcC","CCCCCCCCCCCCCCCC","CCCCCCCCCCCCCCCC","CcCCCCCCCCCCCCcC","CcCCCCCCCCCCCCcC","CCCCCCCCCCCCCCCC","CCCCCCCCCCCCCCCC","CcCCCCCCCCCCCCcC","CcCCCCCCCCCCCCcC","CCCCCCCCCCCCCCCC","CcCCCCCCCCCCCCcC","CccCCCCCCCCCCccC","CccccccccccccccC","CccccccccccccccC","cccccccccccccccc","cccccccccccccccc",".cccccccccccccc.","..cccccccccccc.."];
   // 避ける障害物 見た目バリエ(全部 8x14)
   const SPIKE_R=["...WW...","...RR...","..RRRR..","..RRRR..",".RRRRRR.",".RRrrRR.",".RRrrRR.","RRRrrRRR","RRRrrRRR","RRrrrrRR","RRrrrrRR","RrrrrrrR","RrrrrrrR","rrrrrrrr"];
   const SPIKE_M=["...WW...","...MM...","..MMMM..","..MMMM..",".MMMMMM.",".MMmmMM.",".MMmmMM.","MMMmmMMM","MMMmmMMM","MMmmmmMM","MMmmmmMM","MmmmmmmM","MmmmmmmM","mmmmmmmm"];
@@ -187,12 +191,15 @@
 
   /* タイプ定義 (避ける系はsprites配列から見た目ランダム) */
   const TYPES={
-    spike:   {w:8, h:14,stomp:false,yo:14,big:false,sprites:[SPIKE_R,SPIKE_M,PILLAR,BONE]},
-    rock:    {w:16,h:20,stomp:false,yo:20,big:true, sprites:[ROCK_M,ROCK_B]},
-    slime:   {w:12,h:9, stomp:true, yo:9, big:false,sprites:[SLIME]},
-    bigslime:{w:18,h:16,stomp:true, yo:16,big:true, sprites:[BIGSLIME]},
-    floater: {w:12,h:10,stomp:false,yo:42,big:false,air:true,sprites:[FLOATER]},
-    wide:    {w:84,h:12,stomp:true, yo:12,big:true, wide:true}   // 高難易度: 避けれず踏むしかない
+    spike:    {w:8, h:14,stomp:false,yo:14,big:false,sprites:[SPIKE_R,SPIKE_M,PILLAR,BONE]},
+    rock:     {w:16,h:20,stomp:false,yo:20,big:true, sprites:[ROCK_M,ROCK_B]},
+    slime:    {w:12,h:9, stomp:true, yo:9, big:false,sprites:[SLIME]},
+    bigslime: {w:18,h:16,stomp:true, yo:16,big:true, sprites:[BIGSLIME]},
+    tallslime:{w:18,h:22,stomp:true, yo:22,big:true, sprites:[TALLSLIME]},   // 少し大きい
+    tower:    {w:16,h:40,stomp:true, yo:40,big:true, tall:true,sprites:[TOWER]}, // 背高・踏むしかない
+    floater:  {w:12,h:10,stomp:false,yo:42,big:false,air:true,sprites:[FLOATER]},
+    mover:    {w:12,h:9, stomp:true, yo:9, big:false,move:'patrol',sprites:[SLIME]}, // 前後に動く
+    hopper:   {w:12,h:9, stomp:true, yo:9, big:false,move:'hop',sprites:[SLIME]}     // ジャンプする
   };
 
   /* 状態 */
@@ -256,13 +263,15 @@
   /* スポーン */
   function pickKind(){
     const d=distance, table=[];
-    table.push(['slime', d<150?40:26]);
-    table.push(['spike', d<150?60:32]);
+    table.push(['slime', d<150?38:24]);
+    table.push(['spike', d<150?58:30]);
     const gate=hardMode?90:130;
-    if(d>=gate){ table.push(['bigslime',hardMode?16:15]); table.push(['rock',hardMode?16:15]); }
-    if(d>=(hardMode?150:260)) table.push(['floater',hardMode?14:11]);
-    if(hardMode && d>=110) table.push(['wide',13]);
-    let total=0; for(const t of table){ if(t[0]==='floater'&&lastKind==='floater')t[1]=0; if(t[0]==='wide'&&lastKind==='wide')t[1]=0; total+=t[1]; }
+    if(d>=gate){ table.push(['bigslime',13]); table.push(['tallslime',13]); table.push(['rock',14]); }
+    if(d>=(hardMode?150:260)) table.push(['floater',hardMode?13:11]);
+    if(hardMode && d>=110){ table.push(['tower',11]); table.push(['mover',13]); table.push(['hopper',13]); }
+    // 同種の連続を抑制
+    const noRepeat=['floater','tower','mover','hopper'];
+    let total=0; for(const t of table){ if(noRepeat.includes(t[0])&&lastKind===t[0])t[1]=0; total+=t[1]; }
     let roll=Math.random()*total;
     for(const t of table){ roll-=t[1]; if(roll<=0) return t[0]; }
     return 'spike';
@@ -270,7 +279,10 @@
   function makeObs(kind,wx){
     const def=TYPES[kind];
     const sp = def.sprites ? def.sprites[(Math.random()*def.sprites.length)|0] : null;
-    return {kind,wx,w:def.w,h:def.h,dead:false,anim:Math.random()*10,sprite:sp};
+    const o={kind,wx,w:def.w,h:def.h,dead:false,anim:Math.random()*10,sprite:sp};
+    if(def.move==='patrol') o.amp=12+Math.random()*8;
+    if(def.move==='hop'){ o.hop=0; o.hopV=0; o.hopWait=Math.random()*40; }
+    return o;
   }
   function spawn(){
     const kind=pickKind(), def=TYPES[kind], baseWx=groundScroll+LW+8;
@@ -280,7 +292,8 @@
     let minGap=speed*air*0.6+30;
     if(hardMode) minGap*=0.8;
     if(def.big) minGap+=16;
-    if(def.wide) minGap+=speed*air*0.4;       // 幅広物は通過に時間
+    if(def.tall) minGap+=24;                  // 背高は飛ぶ準備に余白
+    if(def.move) minGap+=14;                   // 動く敵も少し余白
     if(kind==='floater'||lastKind==='floater') minGap+=26;
     spawnGap=minGap+Math.random()*(50+speed*6);
     lastKind=kind;
@@ -349,11 +362,16 @@
     const pb={x:player.x+2,y:player.y+1,w:player.w-4,h:player.h-2};
     for(const o of obstacles){
       o.anim+=dt; const def=TYPES[o.kind];
-      const ox=o.wx-groundScroll, oy=terrainY(o.wx)-def.yo;
+      if(def.move==='hop'){            // ジャンプする敵の物理
+        if(o.hop<=0 && o.hopWait<=0){ o.hopV=4.4; o.hopWait=35+Math.random()*45; }
+        if(o.hopWait>0) o.hopWait-=dt;
+        o.hop+=o.hopV*dt; o.hopV-=0.42*dt; if(o.hop<0){ o.hop=0; o.hopV=0; }
+      }
+      const p=obsPos(o,def), ox=p.ox, oy=p.oy;
       if(o.dead){ o.deadT+=dt; continue; }
       if(!hit(pb,ox+1,oy+1,o.w-2,o.h-1)) continue;
       if(def.stomp){
-        const footOnTop=player.vy>0 && (pb.y+pb.h)<=(oy+o.h*0.65);
+        const footOnTop=player.vy>0 && (pb.y+pb.h)<=(oy+o.h*0.7);
         if(footOnTop){
           o.dead=true; o.deadT=0; player.vy=JUMP_V*0.66; player.onGround=false;
           distance+=def.big?4:2; (def.big?sfxBonus:sfxStomp)();
@@ -429,24 +447,21 @@
       if(w%8===4){ ctx.fillStyle='rgba(0,0,0,.12)'; ctx.fillRect(sx,ty+12,1,1); }
     }
   }
-  function drawWide(o,ox,oy){
-    // 横長スライム(緑) 手続き描画
-    const w=o.w,h=o.h;
-    ctx.fillStyle='#34d399'; ctx.fillRect(ox+2,oy+2,w-4,h-2);
-    ctx.fillRect(ox,oy+4,w,h-4);
-    ctx.fillStyle='#159b78'; ctx.fillRect(ox,oy+h-2,w,2);
-    ctx.fillStyle='#1c9b73'; for(let i=0;i<w;i+=10) ctx.fillRect(ox+i,oy+h-1,5,1);
-    // 目を3〜4個
-    const n=Math.max(2,Math.floor(w/24));
-    for(let i=0;i<n;i++){ const ex=ox+12+i*(w-22)/(n-1||1);
-      ctx.fillStyle='#fff'; ctx.fillRect(ex,oy+4,2,2); ctx.fillStyle='#3a2540'; ctx.fillRect(ex,oy+5,1,1); }
+  // 敵の実効表示位置(前後移動・ジャンプを反映)
+  function obsPos(o,def){
+    let ox=o.wx-groundScroll, oy=terrainY(o.wx)-def.yo;
+    if(def.move==='patrol') ox+=Math.sin(o.anim*0.06)*(o.amp||14);
+    if(def.move==='hop') oy-=(o.hop||0);
+    return {ox,oy};
   }
   function drawObstacles(){
     for(const o of obstacles){
-      const def=TYPES[o.kind], ox=Math.round(o.wx-groundScroll), oy=Math.round(terrainY(o.wx)-def.yo);
+      const def=TYPES[o.kind], p=obsPos(o,def), ox=Math.round(p.ox), oy=Math.round(p.oy);
       if(def.stomp&&o.dead){ ctx.fillStyle='#159b78'; const sh=Math.max(1,(def.big?7:5)-o.deadT*0.3); ctx.fillRect(ox,Math.round(terrainY(o.wx))-sh,o.w,sh); continue; }
-      if(def.wide){ drawWide(o,ox,oy); continue; }
-      let bob=0; if(def.stomp) bob=Math.sin(o.anim*0.25); else if(def.air) bob=Math.sin(o.anim*0.18)*3;
+      let bob=0;
+      if(def.move==='hop') bob=0;
+      else if(def.stomp) bob=Math.sin(o.anim*0.25);
+      else if(def.air) bob=Math.sin(o.anim*0.18)*3;
       drawSprite(o.sprite,ox,Math.round(oy+bob),false);
     }
   }
