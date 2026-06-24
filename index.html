@@ -30,7 +30,7 @@
   #adGameplay.show{display:block;}
 
   .overlay{position:absolute;inset:0;z-index:10;overflow-y:auto;display:flex;flex-direction:column;
-    align-items:center;justify-content:center;text-align:center;padding:18px;gap:12px;
+    align-items:center;justify-content:flex-start;text-align:center;padding:14px 18px 20px;gap:12px;
     background:radial-gradient(120% 90% at 50% 16%,rgba(106,46,110,.4),rgba(13,8,32,.85));}
   .overlay.hidden{display:none;}
   .title{font-size:clamp(32px,10vw,64px);font-weight:900;letter-spacing:-2px;line-height:.9;color:var(--glow);
@@ -45,6 +45,14 @@
   @keyframes pulse{50%{transform:scale(1.05);}}
   .howline{font-size:11px;color:rgba(255,255,255,.6);font-weight:600;line-height:1.5;max-width:330px;}
   .howline b{color:var(--glow);}
+  /* 縦画面: ゲーム中の小広告とスコアの重なりを回避(スコアを広告の下へ) */
+  #adGameplay{max-width:96vw;}
+  body.portrait #hud{padding-top:60px;}
+  /* 横画面: 大広告のスペース確保のため上部コンテンツをコンパクトに */
+  body:not(.portrait) .overlay{gap:8px;padding-top:10px;}
+  body:not(.portrait) .title{font-size:clamp(26px,7vw,46px);}
+  body:not(.portrait) .howline{display:none;}
+  body:not(.portrait) .howto{font-size:12px;padding:9px 14px;gap:4px;}
   .howto{display:flex;flex-direction:column;gap:6px;font-size:clamp(12px,3vw,14px);font-weight:600;
     color:rgba(255,255,255,.92);background:rgba(13,8,32,.45);border:1px solid rgba(255,255,255,.12);
     border-radius:14px;padding:12px 18px;max-width:340px;}
@@ -80,7 +88,9 @@
   .tap{margin-top:2px;font-size:clamp(14px,3.6vw,18px);font-weight:800;letter-spacing:1px;color:#fff;
     padding:12px 28px;border-radius:40px;background:linear-gradient(180deg,var(--accent),#e0552a);
     box-shadow:0 5px 0 #a13315,0 8px 14px rgba(0,0,0,.4);animation:bob 1.4s ease-in-out infinite;cursor:pointer;}
-  .ad{display:flex;justify-content:center;align-items:center;min-height:0;}
+  .ad{display:flex;justify-content:center;align-items:center;margin-top:auto;width:100%;
+    padding-top:16px;border-top:1px solid rgba(255,255,255,.12);}
+  .ad:empty{border-top:0;padding-top:0;}
   @media (prefers-reduced-motion:reduce){.tap,.newbest,.rotate .ph,.startBtn,body.portrait .rotate{animation:none;}}
 </style>
 </head>
